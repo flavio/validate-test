@@ -1,6 +1,12 @@
+extern crate wapc_guest as guest;
+
+use guest::prelude::*;
 use serde::Serialize;
 
-use std::io::{self, Read};
+#[no_mangle]
+pub extern "C" fn wapc_init() {
+    register_function("validate", validate);
+}
 
 #[derive(Serialize, Debug)]
 pub(crate) struct ValidationResponse {
@@ -9,11 +15,8 @@ pub(crate) struct ValidationResponse {
     pub code: Option<u16>,
 }
 
-fn main() -> std::result::Result<(), std::io::Error> {
-    let mut req = String::new();
-    io::stdin().read_to_string(&mut req)?;
-
-    let req_obj: serde_json::Value = serde_json::from_str(&req)?;
+fn validate(req: &[u8]) -> CallResult {
+    let req_obj: serde_json::Value = serde_json::from_slice(req)?;
 
     let resp: ValidationResponse = match req_obj.get("namespace") {
         None => ValidationResponse {
@@ -28,6 +31,5 @@ fn main() -> std::result::Result<(), std::io::Error> {
         },
     };
 
-    println!("{}", serde_json::to_string(&resp)?);
-    Ok(())
+    Ok(serde_json::to_vec(&resp)?)
 }
